@@ -1,0 +1,32 @@
+{
+  "workspaceId": "YOUR_WORKSPACE_ID",
+  "boards": {
+    "projects": {
+      "name": "My Projects",
+      "lists": ["Ideas", "Active", "Maintaining", "Paused", "Retired"],
+      "labels": [
+        {"name": "Core", "color": "green"},
+        {"name": "Secondary", "color": "blue_dark"}
+      ]
+    },
+    "milestones": {
+      "name": "My Milestones",
+      "lists": ["Planned", "In Progress", "In Review", "Achieved", "Paused"],
+      "labels": [
+        {"name": "Core", "color": "green"},
+        {"name": "Secondary", "color": "blue_dark"}
+      ]
+    },
+    "tasks": {
+      "name": "My Tasks",
+      "lists": ["Backlog", "To-Do", "Doing", "Blocked", "In Review", "Done 🎉"],
+      "labels": [
+        {"name": "DEV", "color": "green"},
+        {"name": "OPS", "color": "blue"},
+        {"name": "MKT", "color": "purple"},
+        {"name": "SALES", "color": "orange"},
+        {"name": "SUPPORT", "color": "yellow"}
+      ]
+    }
+  }
+}

@@ -7,6 +7,9 @@ description: Manage Trello initiatives, milestones, task execution briefs, label
 
 Use paths relative to this skill directory. Requires Python 3.8+ and process environment variables `TRELLO_API_KEY` and `TRELLO_TOKEN`.
 
+## Provisioning
+For requested board setup, copy `config.example.json` to ignored `config.local.json`, configure verified workspace/board targets, run `python3 scripts/setup.py --config config.local.json` for read-only preview, and use `--apply` only after reviewing additions and obtaining authority. Read references/setup.md first.
+
 ## Operating procedure
 1. Read [workflow](references/workflow.md) and [safety](references/safety.md). For first-time access read [authentication](references/authentication.md).
 2. Discover boards with `python3 scripts/trello.py boards`, then lists and relevant cards. Resolve exact IDs; never infer a board from a similar name. Confirm scope with the user if ambiguous.

@@ -5,7 +5,7 @@ A portable agent skill and dependency-free Python CLI for **Initiatives → Mile
 ## Install
 
 ```sh
-git clone https://github.com/vfssantos/trello-skill.git
+git clone https://github.com/copilotzhq/trello-skill.git
 cd trello-skill
 python3 scripts/trello.py --help
 ```
@@ -23,6 +23,7 @@ python3 scripts/trello.py cards LISTID
 ## Contents
 
 - `SKILL.md`: agent operating instructions.
+- `scripts/setup.py`: configuration-driven, read-only preview and explicit `--apply` provisioning.
 - `scripts/trello.py`: JSON CLI for cards, labels, copies and checklists.
 - `references/`: setup, workflow, authentication, command and safety guides.
 - `templates/`: reusable initiative, milestone and task descriptions.
@@ -36,4 +37,6 @@ python3 scripts/trello.py cards LISTID
 python3 -m unittest discover -s tests -v
 ```
 
-Tests are offline mocks, not a certification of every Trello operation. This packaged CLI's expanded copy/label/checklist command set has not been live-tested as a whole. JSON output contains private board data. Lists are API-returned collections, not guaranteed exhaustive exports; labels return at most 100. No pagination loop, bulk migration, native template flag, board/list creation, member assignment, due-date editing, delete/archive command, webhooks or automatic execution is included. Configure those unsupported fields in Trello's UI. No third-party Python dependencies are required.
+The setup script can create boards/lists, labels, guides and templates additively; it is not a migration tool.
+
+Tests are offline mocks, not a certification of every Trello operation. This packaged CLI's expanded copy/label/checklist command set has not been live-tested as a whole. JSON output contains private board data. Lists are API-returned collections, not guaranteed exhaustive exports; labels return at most 100. No pagination loop, bulk migration, native template flag, member assignment, due-date editing, delete/archive command, webhooks or automatic execution is included. Configure those unsupported fields in Trello's UI. No third-party Python dependencies are required.
