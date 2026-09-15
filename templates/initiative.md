@@ -1,20 +1,20 @@
-## Purpose
-To define: who benefits and why this initiative exists.
+## What it is
+[Describe the project, product or initiative and its durable scope.]
 
-## Current focus
-To define: the most important outcome now, or what is being maintained.
+## Purpose and audience
+[Explain why it matters and who benefits from or uses it.]
 
-## Current milestone
-To define: link to the milestone card.
+## How it works
+[Describe the durable architecture, workflow or operating model.]
 
-## Health
-Not assessed. Last reviewed: not yet.
-
-## Next action
-To define: link to the next task card.
-
-## Resume condition (if paused)
-To define: condition for resuming and review date.
+## Context and relationships
+[Describe stakeholders, boundaries, dependencies and stable relationships to related
+initiatives or projects. Link the project's primary Space card and other stable related
+Trello cards. Put progress, proposals, selected
+milestones, next steps and handoff notes in linked milestone/task cards or dated comments.]
 
 ## Resources
-To define: repository, documentation, service and relevant links.
+[Add verified canonical remote repository, documentation and evidence links, plus relevant
+durable milestone/task card links where useful. Use the verified repository/ref for navigation;
+use commit, PR or artifact URLs for evidence. If work is only local, note that remote evidence
+is unavailable rather than inventing a link.]

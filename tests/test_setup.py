@@ -12,6 +12,7 @@ import json
 import os
 import sys
 import unittest
+import copy
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -158,6 +159,92 @@ class TestSetup(unittest.TestCase):
             }
         }
 
+    def spaces_cfg(self):
+        cfg = copy.deepcopy(self.valid_cfg)
+        cfg['boards']['spaces'] = {'name': 'Spaces'}
+        return cfg
+
+    def test_spaces_only_preview_is_read_only_and_scoped(self):
+        client = FakeTrelloClient()
+        cfg = self.spaces_cfg()
+
+        actions, targets = setup.build_plan(client, cfg, 'ws1234567890', ['spaces'])
+
+        self.assertEqual(set(targets), {'spaces'})
+        self.assertEqual(len(actions), 6)
+        self.assertTrue(all(action['role'] == 'spaces' for action in actions))
+        self.assertFalse(any(action['type'].startswith('create_checklist') for action in actions))
+        self.assertTrue(all(method == 'GET' for method, _, _ in client.requests))
+
+    def test_spaces_only_apply_creates_expected_board_and_reruns_cleanly(self):
+        client = FakeTrelloClient()
+        cfg = self.spaces_cfg()
+        actions, targets = setup.build_plan(client, cfg, 'ws1234567890', ['spaces'])
+
+        setup.execute_plan(client, actions, targets, 'ws1234567890')
+
+        self.assertEqual([board['name'] for board in client.boards], ['Spaces'])
+        space_board_id = client.boards[0]['id']
+        self.assertEqual(
+            [item['name'] for item in client.lists[space_board_id]],
+            ['Active', 'Inactive', setup.GUIDE_LIST_NAME]
+        )
+        card_names = [
+            card['name']
+            for cards in client.cards.values()
+            for card in cards
+        ]
+        self.assertEqual(set(card_names), {
+            setup.BOARD_SPECS['spaces']['guide_title'],
+            setup.BOARD_SPECS['spaces']['template_title']
+        })
+        self.assertEqual(client.checklists, {})
+
+        client.requests.clear()
+        rerun_actions, rerun_targets = setup.build_plan(client, cfg, 'ws1234567890', ['spaces'])
+        self.assertEqual(rerun_actions, [])
+        self.assertEqual(set(rerun_targets), {'spaces'})
+        setup.execute_plan(client, rerun_actions, rerun_targets, 'ws1234567890')
+        self.assertTrue(all(method == 'GET' for method, _, _ in client.requests))
+
+    def test_legacy_config_still_targets_three_boards(self):
+        client = FakeTrelloClient()
+        actions, targets = setup.build_plan(client, self.valid_cfg, 'ws1234567890')
+
+        self.assertEqual(set(targets), {'projects', 'milestones', 'tasks'})
+        self.assertEqual(
+            {action['role'] for action in actions if action['type'] == 'create_board'},
+            {'projects', 'milestones', 'tasks'}
+        )
+
+    def test_spaces_opt_in_targets_four_boards(self):
+        client = FakeTrelloClient()
+        cfg = self.spaces_cfg()
+        actions, targets = setup.build_plan(client, cfg, 'ws1234567890')
+
+        self.assertEqual(set(targets), {'spaces', 'projects', 'milestones', 'tasks'})
+        self.assertEqual(
+            {action['role'] for action in actions if action['type'] == 'create_board'},
+            {'spaces', 'projects', 'milestones', 'tasks'}
+        )
+
+    def test_selected_role_validation_happens_before_reads(self):
+        client = FakeTrelloClient()
+        with self.assertRaises(ClientError):
+            setup.build_plan(client, self.valid_cfg, 'ws1234567890', ['spaces'])
+        self.assertEqual(client.requests, [])
+
+        with self.assertRaises(ClientError):
+            setup.build_plan(client, self.valid_cfg, 'ws1234567890', ['unknown'])
+        self.assertEqual(client.requests, [])
+
+        cfg = self.spaces_cfg()
+        with self.assertRaises(ClientError):
+            setup.validate_config(cfg, ['spaces', 'spaces'])
+        cfg['boards']['spaces']['name'] = 'My Projects'
+        with self.assertRaises(ClientError):
+            setup.validate_config(cfg)
+
     def test_partial_write_recovery(self):
         client = FakeTrelloClient()
         original = client.request
@@ -255,6 +342,71 @@ class TestSetup(unittest.TestCase):
             # Verify Templates & Guide list exists
             list_names = [l['name'] for l in fake_client.lists[bid]]
             self.assertIn(setup.GUIDE_LIST_NAME, list_names)
+
+    def test_milestone_template_and_guide_use_success_evidence(self):
+        fake_client = FakeTrelloClient()
+        actions, targets = setup.build_plan(fake_client, self.valid_cfg, 'ws1234567890')
+        setup.execute_plan(fake_client, actions, targets, 'ws1234567890')
+
+        milestone_board = next(b for b in fake_client.boards if b['name'] == 'My Milestones')
+        milestone_cards = [
+            card
+            for cards in fake_client.cards.values()
+            for card in cards
+            if any(l['id'] == card['idList'] and l['idBoard'] == milestone_board['id']
+                   for l in fake_client.lists[milestone_board['id']])
+        ]
+        guide = next(c for c in milestone_cards if c['name'] == setup.BOARD_SPECS['milestones']['guide_title'])
+        template = next(c for c in milestone_cards if c['name'] == setup.BOARD_SPECS['milestones']['template_title'])
+        for description in (guide['desc'], template['desc']):
+            self.assertIn('Parent project', description)
+            self.assertIn('Target state', description)
+            self.assertIn('Target date', description)
+            self.assertIn('Success evidence', description)
+            self.assertNotIn('acceptance', description.lower())
+            self.assertNotIn('scope / exclusions', description.lower())
+            self.assertNotIn('contributing tasks', description.lower())
+
+        checklists = fake_client.checklists[template['id']]
+        self.assertEqual([checklist['name'] for checklist in checklists], ['Success evidence'])
+        self.assertEqual(
+            [item['name'] for item in checklists[0]['checkItems']],
+            ['Define success evidence before committing']
+        )
+
+    def test_legacy_milestone_checklist_recovery_adds_new_checklist_idempotently(self):
+        fake_client = FakeTrelloClient()
+        actions, targets = setup.build_plan(fake_client, self.valid_cfg, 'ws1234567890')
+        setup.execute_plan(fake_client, actions, targets, 'ws1234567890')
+
+        template = next(
+            card for cards in fake_client.cards.values() for card in cards
+            if card['name'] == setup.BOARD_SPECS['milestones']['template_title']
+        )
+        fake_client.checklists[template['id']] = [{
+            'id': 'legacy-checklist',
+            'idCard': template['id'],
+            'name': 'Acceptance criteria',
+            'checkItems': [{'id': 'legacy-item', 'name': 'Old wording'}],
+        }]
+
+        fake_client.requests.clear()
+        actions, targets = setup.build_plan(fake_client, self.valid_cfg, 'ws1234567890')
+        self.assertEqual(
+            [action['type'] for action in actions if action.get('role') == 'milestones'],
+            ['create_checklist']
+        )
+        setup.execute_plan(fake_client, actions, targets, 'ws1234567890')
+        self.assertEqual(
+            {checklist['name'] for checklist in fake_client.checklists[template['id']]},
+            {'Acceptance criteria', 'Success evidence'},
+        )
+
+        actions, _ = setup.build_plan(fake_client, self.valid_cfg, 'ws1234567890')
+        self.assertFalse(any(
+            action.get('role') == 'milestones' and action['type'].startswith('create_checklist')
+            for action in actions
+        ))
 
     def test_idempotent_rerun_zero_writes(self):
         fake_client = FakeTrelloClient()

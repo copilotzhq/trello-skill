@@ -1,6 +1,8 @@
 # Trello Skill
 
-A portable agent skill and dependency-free Python CLI for **Initiatives → Milestones → Tasks → To-dos**. No vendor-specific runtime, account IDs, or credentials are bundled.
+A portable agent skill and dependency-free Python CLI for **Spaces → Initiatives → Milestones → Tasks → To-dos**. No vendor-specific runtime, account IDs, or credentials are bundled.
+
+Initiative/project descriptions provide durable shared context with default sections for What it is, Purpose and audience, How it works, Context and relationships, and Resources. Keep progress, proposals, selected milestones, next steps and handoff notes in linked milestone/task cards or dated comments; the project column records commitment state. Follow the [workflow](references/workflow.md) for portable-link rules.
 
 ## Install
 
@@ -26,10 +28,10 @@ python3 scripts/trello.py cards LISTID
 - `scripts/setup.py`: configuration-driven, read-only preview and explicit `--apply` provisioning.
 - `scripts/trello.py`: JSON CLI for cards, labels, copies and checklists.
 - `references/`: setup, workflow, authentication, command and safety guides.
-- `templates/`: reusable initiative, milestone and task descriptions.
+- `templates/`: reusable Space, initiative, milestone and task descriptions.
 - `tests/`: offline transport and command tests.
 
-[Set up the three boards](references/setup.md), then follow the [workflow](references/workflow.md). Boards and labels are configurable conventions, not hardcoded account resources.
+[Set up the configured boards](references/setup.md), then follow the [workflow](references/workflow.md). Boards and labels are configurable conventions, not hardcoded account resources.
 
 ## Tests and limits
 

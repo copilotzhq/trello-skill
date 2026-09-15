@@ -2,6 +2,12 @@
 
 Read existing boards, lists, and labels first. Confirm workspace ID, scope, and board names; reuse only unambiguous matches. Do not bulk rename, relocate, or overwrite existing user content. Back up private state outside the repository if needed.
 
+## Portable shared context
+
+Initiative/project descriptions provide durable context for agents and collaborators. Use the default sections What it is; Purpose and audience; How it works; Context and relationships; and Resources. Keep progress, proposals, selected milestones, next steps, handoff notes and review details in linked milestone/task cards or dated comments. The project column records commitment state. Follow the [workflow](workflow.md) for portable-link rules. When rewriting an existing project description, preserve useful transient information in a concise dated comment and do not invent commitments.
+
+Spaces are an optional fourth board for durable company, personal or collaboration context. A Space card is separate from a native Trello Workspace and does not imply legal or intellectual-property ownership. Projects link one primary Space. Every milestone has exactly one parent project and inherits that project's Space; standalone Space milestones are not used. Tasks inherit their parent project's Space unless they record explicit cross-space context; standalone tasks may link a Space directly.
+
 Two setup paths are available:
 1. **Automated configuration-driven setup** via `scripts/setup.py` (recommended for reproducible multi-board provisioning).
 2. **Manual CLI / UI setup** using `scripts/trello.py` and Trello's web interface.
@@ -15,6 +21,7 @@ Two setup paths are available:
 - Runs in **preview mode** (read-only) by default to inspect planned additions.
 - Requires explicit `--apply` to perform writes.
 - Creates missing boards as `private` in the specified workspace.
+- Supports the optional `spaces` role with `Active`, `Inactive`, and `Templates & Guide` lists.
 - Preserves existing boards, lists, cards, and ordering (additive-only).
 - Re-reads board state before writing lists, labels, cards, and checklists to avoid duplicate objects.
 - Creates the dedicated `Templates & Guide` list, guide cards, and copyable template cards with native checklists.
@@ -36,11 +43,19 @@ Two setup paths are available:
    ```
 5. Rerunning with `--apply` is idempotent: if all objects exist, zero writes are made.
 
+To preview or apply only the configured Spaces board, use `--only spaces`:
+```sh
+python3 scripts/setup.py --config config.local.json --only spaces
+python3 scripts/setup.py --config config.local.json --only spaces --apply
+```
+The `--only` filter scopes planning and writes to the selected roles. Unknown roles fail before network activity, and `--only spaces` requires an explicit `spaces` entry in the config. Legacy configs that omit `spaces` continue to target the original three boards; `config.example.json` includes the opt-in Spaces role.
+
 ---
 
 ## 2. Manual CLI Setup (`scripts/trello.py`)
 
 If creating boards manually or adapting existing boards in Trello's UI:
+- **Spaces**: `Active`, `Inactive`.
 - **My Projects**: `Ideas`, `Active`, `Maintaining`, `Paused`, `Retired`.
 - **My Milestones**: `Planned`, `In Progress`, `In Review`, `Achieved`, `Paused`.
 - **My Tasks**: `Backlog`, `To-Do`, `Doing`, `Blocked`, `In Review`, `Done 🎉`.
@@ -56,6 +71,7 @@ Add `Templates & Guide` as the rightmost list on each board. Then create reusabl
 python3 scripts/trello.py create PROJECT_TEMPLATES_LIST_ID --name '[TEMPLATE] Initiative — Ongoing Overview (copy me)' --desc "$(cat templates/initiative.md)" --yes
 python3 scripts/trello.py create MILESTONE_TEMPLATES_LIST_ID --name '[TEMPLATE] Milestone — Achieved State (copy me)' --desc "$(cat templates/milestone.md)" --yes
 python3 scripts/trello.py create TASK_TEMPLATES_LIST_ID --name '[TEMPLATE] Task — Execution Brief (copy me)' --desc "$(cat templates/task.md)" --yes
+python3 scripts/trello.py create SPACE_TEMPLATES_LIST_ID --name '[TEMPLATE] Space — Context & Purpose (copy me)' --desc "$(cat templates/space.md)" --yes
 
 # Add native checklists to templates
 python3 scripts/trello.py create-checklist TASK_TEMPLATE_CARD_ID --name 'To-dos' --yes
@@ -64,8 +80,8 @@ python3 scripts/trello.py add-checklist-item TASK_CHECKLIST_ID --name 'Execute t
 python3 scripts/trello.py add-checklist-item TASK_CHECKLIST_ID --name 'Verify against Done when' --yes
 python3 scripts/trello.py add-checklist-item TASK_CHECKLIST_ID --name 'Report result and evidence' --yes
 
-python3 scripts/trello.py create-checklist MILESTONE_TEMPLATE_CARD_ID --name 'Acceptance criteria' --yes
-python3 scripts/trello.py add-checklist-item MILESTONE_CHECKLIST_ID --name 'Define acceptance criteria before committing' --yes
+python3 scripts/trello.py create-checklist MILESTONE_TEMPLATE_CARD_ID --name 'Success evidence' --yes
+python3 scripts/trello.py add-checklist-item MILESTONE_CHECKLIST_ID --name 'Define success evidence before committing' --yes
 ```
 
 ### Copyable Cards vs Native Badges

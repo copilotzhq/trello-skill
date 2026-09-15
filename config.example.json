@@ -1,6 +1,10 @@
 {
   "workspaceId": "YOUR_WORKSPACE_ID",
   "boards": {
+    "spaces": {
+      "name": "Spaces",
+      "lists": ["Active", "Inactive"]
+    },
     "projects": {
       "name": "My Projects",
       "lists": ["Ideas", "Active", "Maintaining", "Paused", "Retired"],

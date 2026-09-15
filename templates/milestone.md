@@ -1,21 +1,17 @@
-## Parent initiative
-[Link to initiative card.]
+## Parent project
+[Link to exactly one parent project/initiative card. Every milestone has one parent project and
+inherits that project's Space; standalone Space milestones are not used.]
 
 ## Target state
-[Meaningful outcome, not a list of activities.]
+[Describe the well-specified, observable state this milestone will achieve.]
+
+## Target date
+[Required: YYYY-MM-DD. Set the native Trello due date to this same date; the two dates must agree.]
 
 ## Success evidence
-[Observable acceptance criteria and evidence required.]
-
-## Scope / exclusions
-In: [Define.]
-Out: [Define.]
-
-## Contributing tasks
-[Link task cards; do not duplicate status.]
+[Required: define success evidence before committing. State the verifiable evidence that will prove
+the target state has been achieved.
+Link verified remote evidence, such as an immutable commit, PR, issue or artifact, where available.]
 
 ## Dependencies / decisions
-[Material blockers and approvals.]
-
-## Result
-[Fill when achieved; link verification evidence.]
+[Record only material blockers, decisions, or approvals that affect this milestone.]

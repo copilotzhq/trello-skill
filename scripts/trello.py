@@ -4,6 +4,7 @@ Provides read and write operations with strict validation, JSON output,
 explicit write confirmation, no automatic retries, and sanitized errors.
 """
 import argparse
+from datetime import date
 import json
 import os
 import re
@@ -52,7 +53,8 @@ class Client:
                 return json.load(response)
         except urllib.error.HTTPError as exc:
             status = exc.code
-            exc.close()
+            if exc.fp is not None:
+                exc.close()
             raise ClientError('Trello HTTP {}. No automatic retry. For writes, inspect state before retrying.'.format(status)) from None
         except ClientError:
             raise
@@ -65,6 +67,17 @@ def identifier(value):
     if not ID_RE.fullmatch(val):
         raise argparse.ArgumentTypeError('Use a valid Trello alphanumeric ID, not a URL or compound string.')
     return val
+
+
+def due_date(value):
+    """Validate the CLI's date-only due-date format."""
+    if not isinstance(value, str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}', value):
+        raise argparse.ArgumentTypeError('Due date must use YYYY-MM-DD.')
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError('Due date must be a valid calendar date in YYYY-MM-DD format.') from None
+    return parsed.isoformat()
 
 
 class Parser(argparse.ArgumentParser):
@@ -91,18 +104,20 @@ def build_parser():
     s = sub.add_parser('card', help='Get card details')
     s.add_argument('card', type=identifier, help='Card ID')
 
-    # create LIST --name NAME [--desc DESC]
+    # create LIST --name NAME [--desc DESC] [--due YYYY-MM-DD]
     s = sub.add_parser('create', help='Create a new card in a list')
     s.add_argument('list', type=identifier, help='Destination list ID')
     s.add_argument('--name', required=True, help='Card title')
     s.add_argument('--desc', default='', help='Card description')
+    s.add_argument('--due', type=due_date, help='Native due date (YYYY-MM-DD)')
     s.add_argument('--yes', action='store_true', help='Required confirmation for writes')
 
-    # update CARD [--name NAME] [--desc DESC]
+    # update CARD [--name NAME] [--desc DESC] [--due YYYY-MM-DD]
     s = sub.add_parser('update', help='Update a card title or description')
     s.add_argument('card', type=identifier, help='Card ID')
     s.add_argument('--name', help='Updated title')
     s.add_argument('--desc', help='Updated description')
+    s.add_argument('--due', type=due_date, help='Native due date (YYYY-MM-DD)')
     s.add_argument('--yes', action='store_true', help='Required confirmation for writes')
 
     # move CARD LIST
@@ -191,7 +206,10 @@ def plan(a):
     if cmd == 'create':
         if not a.name.strip():
             raise ClientError('Card name cannot be empty.')
-        return 'POST', '/cards', {'idList': a.list, 'name': a.name.strip(), 'desc': a.desc}
+        params = {'idList': a.list, 'name': a.name.strip(), 'desc': a.desc}
+        if a.due is not None:
+            params['due'] = a.due
+        return 'POST', '/cards', params
 
     if cmd == 'update':
         params = {}
@@ -201,8 +219,10 @@ def plan(a):
             params['name'] = a.name.strip()
         if a.desc is not None:
             params['desc'] = a.desc
+        if a.due is not None:
+            params['due'] = a.due
         if not params:
-            raise ClientError('Supply --name and/or --desc to update.')
+            raise ClientError('Supply --name, --desc, and/or --due to update.')
         return 'PUT', f'/cards/{a.card}', params
 
     if cmd == 'move':

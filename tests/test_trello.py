@@ -122,6 +122,14 @@ class TestTrelloCLI(unittest.TestCase):
         m, p, q = trello.plan(parser.parse_args(['update', 'c1', '--name', 'T2', '--desc', 'D2', '--yes']))
         self.assertEqual((m, p, q), ('PUT', '/cards/c1', {'name': 'T2', 'desc': 'D2'}))
 
+        # native due date routes on create/update
+        m, p, q = trello.plan(parser.parse_args(['create', 'l1', '--name', 'Dated', '--due', '2026-09-30', '--yes']))
+        self.assertEqual((m, p, q), ('POST', '/cards', {
+            'idList': 'l1', 'name': 'Dated', 'desc': '', 'due': '2026-09-30'
+        }))
+        m, p, q = trello.plan(parser.parse_args(['update', 'c1', '--due', '2026-10-01', '--yes']))
+        self.assertEqual((m, p, q), ('PUT', '/cards/c1', {'due': '2026-10-01'}))
+
         # move
         m, p, q = trello.plan(parser.parse_args(['move', 'c1', 'l2', '--yes']))
         self.assertEqual((m, p, q), ('PUT', '/cards/c1', {'idList': 'l2'}))
@@ -154,6 +162,16 @@ class TestTrelloCLI(unittest.TestCase):
         m, p, q = trello.plan(parser.parse_args(['set-checklist-item', 'c1', 'itm1', '--state', 'complete', '--yes']))
         self.assertEqual((m, p, q), ('PUT', '/cards/c1/checkItem/itm1', {'state': 'complete'}))
 
+    def test_invalid_due_date_rejected(self):
+        parser = trello.build_parser()
+        for command in [
+            ['create', 'l1', '--name', 'Dated', '--due', '2026-02-29', '--yes'],
+            ['update', 'c1', '--due', '2026-1-02', '--yes'],
+            ['update', 'c1', '--due', 'not-a-date', '--yes'],
+        ]:
+            with self.assertRaises(trello.ClientError, msg=command):
+                parser.parse_args(command)
+
     def test_http_error_sanitized_no_retry(self):
         mock_opener = MagicMock()
         import urllib.error
@@ -167,6 +185,18 @@ class TestTrelloCLI(unittest.TestCase):
         self.assertIn('No automatic retry', str(ctx.exception))
         self.assertNotIn('secret_key_123', str(ctx.exception))
         self.assertNotIn('secret_token_999', str(ctx.exception))
+
+    def test_http_error_closes_response_resource(self):
+        mock_opener = MagicMock()
+        error_fp = MagicMock()
+        import urllib.error
+        mock_opener.open.side_effect = urllib.error.HTTPError(
+            'https://api.trello.com/1/cards', 500, 'Server Error', {}, error_fp
+        )
+        client = trello.Client(key='secret_key_123', token='secret_token_999', opener=mock_opener)
+        with self.assertRaises(trello.ClientError):
+            client.request('GET', '/members/me/boards')
+        error_fp.close.assert_called_once_with()
 
     def test_network_error_sanitized(self):
         mock_opener = MagicMock()
